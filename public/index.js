@@ -173,6 +173,21 @@ function saveRecord(data) {
   }
 }
 
+function getRecord() {
+  const request = indexedDB.open("transactionDB");
+
+  request.onsuccess = event => {
+    const db = request.result;
+    const transaction = db.transaction(["transactions"], "readwrite");
+    const transactionStore = transaction.objectStore("transactions");
+    const transactionIndex = transactionStore.index("name");
+    const allTransactions = transactionIndex.getAll().onsuccess = function(event) {
+      console.log(allTransactions);
+      return allTransactions;
+    }
+  }
+}
+
 document.querySelector("#add-btn").onclick = function() {
   sendTransaction(true);
 };
