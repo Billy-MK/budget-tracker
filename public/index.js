@@ -108,7 +108,7 @@ function sendTransaction(isAdding) {
   transactions.unshift(transaction);
 
   // re-run logic to populate ui with new record
-  populateChart();
+  
   populateTable();
   populateTotal();
   
@@ -122,6 +122,7 @@ function sendTransaction(isAdding) {
     }
   })
   .then(response => {    
+    populateChart();
     return response.json();
   })
   .then(data => {
@@ -142,6 +143,34 @@ function sendTransaction(isAdding) {
     nameEl.value = "";
     amountEl.value = "";
   });
+}
+
+function saveRecord(data) {
+  // Transactions look like this: 
+  // {name: "asdfasdf", value: "1", date: "2021-04-29T18:24:52.972Z"}
+  const request = indexedDB.open("transactionDB", 1);
+
+  request.onupgradeneeded = ({ target }) => {
+    console.log(`Upgrade database: ${request.result}`)
+    const db = target.result;
+
+    const objectStore = db.createObjectStore("transactions", { keyPath: 'id', autoIncrement: true });
+    objectStore.createIndex("name", "name");
+    objectStore.createIndex("value", "value");
+    objectStore.createIndex("date", "date");
+  };
+  
+  request.onsuccess = event => {
+    const db = request.result;
+    const transaction = db.transaction(["transactions"], "readwrite");
+    const transactionStore = transaction.objectStore("transactions")
+    transactionStore.add(data)
+    console.log(`Success: ${request.result}`);
+  };
+
+  request.onerror = event => {
+    console.log(`Error: ${request.error}`)
+  }
 }
 
 document.querySelector("#add-btn").onclick = function() {
