@@ -1,11 +1,15 @@
 let transactions = [];
 let myChart;
 
+
 fetch("/api/transaction")
-  .then(response => {
-    return response.json();
-  })
-  .then(data => {
+.then(response => {
+  if (response.status === 200) {
+    getRecords()
+  }
+  return response.json();
+})
+.then(data => {
     // save db data on global variable
     transactions = data;
 
@@ -163,9 +167,8 @@ function saveRecord(data) {
   request.onsuccess = event => {
     const db = request.result;
     const transaction = db.transaction(["transactions"], "readwrite");
-    const transactionStore = transaction.objectStore("transactions")
+    const transactionStore = transaction.objectStore("transactions");
     transactionStore.add(data)
-    console.log(`Success: ${request.result}`);
   };
 
   request.onerror = event => {
@@ -173,19 +176,52 @@ function saveRecord(data) {
   }
 }
 
-function getRecord() {
+// Returns all transactions from the database and pushes them to the transactions array
+function getRecords() {
   const request = indexedDB.open("transactionDB");
 
+  request.onupgradeneeded = ({ target }) => {
+    const db = target.result;
+
+    const objectStore = db.createObjectStore("transactions", { keyPath: 'id', autoIncrement: true });
+    objectStore.createIndex("name", "name", { unique: false });
+    objectStore.createIndex("value", "value", { unique: false });
+    objectStore.createIndex("date", "date", { unique: false });
+  };
+  
   request.onsuccess = event => {
     const db = request.result;
     const transaction = db.transaction(["transactions"], "readwrite");
     const transactionStore = transaction.objectStore("transactions");
-    const transactionIndex = transactionStore.index("name");
-    const allTransactions = transactionIndex.getAll().onsuccess = function(event) {
-      console.log(allTransactions);
-      return allTransactions;
-    }
+    transactionStore.getAll().onsuccess = function(event) {
+      console.log("Got all stored transactions: " + JSON.stringify(event.target.result));
+      event.target.result.forEach(transaction => {
+        fetch("/api/transaction", {
+          method: "POST",
+          body: JSON.stringify(transaction),
+          headers: {
+            Accept: "application/json, text/plain, */*",
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {    
+          populateChart();
+          return response.json();
+        })
+        .then(data => {
+          if (data.errors) {
+            errorEl.textContent = "Missing Information";
+          }
+        })
+      })
+      transactionStore.clear();
+    };
+  };
+
+  request.onerror = event => {
+    console.log(`Error: ${request.error}`)
   }
+
 }
 
 document.querySelector("#add-btn").onclick = function() {
