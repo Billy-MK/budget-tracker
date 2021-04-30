@@ -1,12 +1,10 @@
 let transactions = [];
 let myChart;
 
+getRecords();
 
 fetch("/api/transaction")
 .then(response => {
-  if (response.status === 200) {
-    getRecords()
-  }
   return response.json();
 })
 .then(data => {
@@ -195,26 +193,23 @@ function getRecords() {
     const transactionStore = transaction.objectStore("transactions");
     transactionStore.getAll().onsuccess = function(event) {
       console.log("Got all stored transactions: " + JSON.stringify(event.target.result));
-      event.target.result.forEach(transaction => {
-        fetch("/api/transaction", {
-          method: "POST",
-          body: JSON.stringify(transaction),
-          headers: {
-            Accept: "application/json, text/plain, */*",
-            "Content-Type": "application/json"
-          }
-        })
-        .then(response => {    
+      fetch("/api/transaction/bulk", {
+        method: "POST",
+        body: JSON.stringify(event.target.result),
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json"
+        }
+      })
+      .then(response => {
+          const transaction = db.transaction(["transactions"], "readwrite");
+          const transactionStore = transaction.objectStore("transactions");
+          transactionStore.clear("")
           populateChart();
           return response.json();
-        })
-        .then(data => {
-          if (data.errors) {
-            errorEl.textContent = "Missing Information";
-          }
-        })
-      })
-      transactionStore.clear();
+      }).catch(err => {
+        console.log(err)
+      }) 
     };
   };
 
