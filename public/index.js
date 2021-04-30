@@ -3,19 +3,6 @@ let myChart;
 
 getRecords();
 
-fetch("/api/transaction")
-.then(response => {
-  return response.json();
-})
-.then(data => {
-    // save db data on global variable
-    transactions = data;
-
-    populateTotal();
-    populateTable();
-    populateChart();
-  });
-
 function populateTotal() {
   // reduce transaction amounts to a single total value
   let total = transactions.reduce((total, t) => {
@@ -191,9 +178,9 @@ function getRecords() {
     const db = request.result;
     const transaction = db.transaction(["transactions"], "readwrite");
     const transactionStore = transaction.objectStore("transactions");
-    transactionStore.getAll().onsuccess = function(event) {
+    transactionStore.getAll().onsuccess = async function(event) {
       console.log("Got all stored transactions: " + JSON.stringify(event.target.result));
-      fetch("/api/transaction/bulk", {
+      await fetch("/api/transaction/bulk", {
         method: "POST",
         body: JSON.stringify(event.target.result),
         headers: {
@@ -207,10 +194,25 @@ function getRecords() {
           transactionStore.clear("")
           populateChart();
           return response.json();
-      }).catch(err => {
+      }).then(
+        fetch("/api/transaction")
+        .then(response => {
+          return response.json();
+        })
+        .then(data => {
+        // save db data on global variable
+          transactions = data;
+
+          populateTotal();
+          populateTable();
+          populateChart();
+        })
+      )
+      .catch(err => {
         console.log(err)
       }) 
     };
+    
   };
 
   request.onerror = event => {
