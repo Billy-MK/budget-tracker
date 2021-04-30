@@ -196,17 +196,17 @@ function getRecords() {
           return response.json();
       }).then(
         fetch("/api/transaction")
-        .then(response => {
-          return response.json();
-        })
-        .then(data => {
-        // save db data on global variable
-          transactions = data;
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+          // save db data on global variable
+            transactions = data;
 
-          populateTotal();
-          populateTable();
-          populateChart();
-        })
+            populateTotal();
+            populateTable();
+            populateChart();
+          })
       )
       .catch(err => {
         console.log(err)
